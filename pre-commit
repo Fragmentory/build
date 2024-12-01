@@ -1,0 +1,39 @@
+#!/bin/sh
+
+# Define the keyword to search for in the file headers
+KEYWORD="Copyright"
+
+# Define the file extensions to check
+EXTENSIONS='cpp h hpp'
+
+# Get the list of files to check
+files=$(git diff --cached --name-only --diff-filter=ACM | grep -E "\.($(echo $EXTENSIONS | sed 's/ /|/g'))$")
+
+# If no files found, exit
+if [ -z "$files" ]; then
+  exit 0
+fi
+
+# Flag to track if any file is missing the copyright notice
+missing_copyright=false
+
+# Format each file and check for copyright notice
+for file in $files; do
+  # Format the file using clang-format
+  clang-format -i "$file"
+  git add "$file"
+
+  # Check if the file contains the keyword "Copyright"
+  if ! grep -q "$KEYWORD" "$file"; then
+    echo "Error: $file does not contain the keyword '$KEYWORD'."
+    echo "Please add a header with a copyright notice at the top of the file."
+    missing_copyright=true
+  fi
+done
+
+# If any file is missing the copyright notice, exit with status 1
+if [ "$missing_copyright" = true ]; then
+  exit 1
+fi
+
+exit 0
